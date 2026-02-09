@@ -206,42 +206,29 @@ const tozaMaydon = computed(() => {
   return xonaMaydon.value - kemtiklarMaydon.value;
 });
 
+// TO'G'RILANGAN: Material maydoni faqat xona o'lchamidan kamayadi
 const materialMaydon = computed(() => {
   if (!joriyXona.value) return 0;
   const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.1 : 0.07;
 
-  // Asosiy xona materiali (kemtiklarni hisobga olgan holda)
-  const asosiyMaterial = tozaMaydon.value * (1 - foiz);
+  // Material faqat xona o'lchamidan kamayadi, kemtiklar hisobga olinmaydi
+  const materialUzunlik = joriyXona.value.uzunlik * (1 - foiz);
+  const materialKenglik = joriyXona.value.kenglik * (1 - foiz);
+  const asosiyMaterial = materialUzunlik * materialKenglik;
 
-  // Har bir kemtik atrofida material maydonini hisoblash
-  // Material kemtik atrofidan aylanib o'tadi
-  const kemtikMaterialQoshimcha = joriyXona.value.kemtiklar.reduce((sum, k) => {
-    // Kemtik atrofidagi qo'shimcha material (kemtikning o'zi ham material bilan qoplanadi)
-    const kemtikMaydon = k.uzunlik * k.kenglik;
-    // Kemtik joyida material yo'q, lekin kemtik atrofida material bor
-    // Shuning uchun kemtik maydonini materialdan ayiramiz
-    return sum - kemtikMaydon * (1 - foiz);
-  }, 0);
-
-  return asosiyMaterial + peregorodkaMaydon.value + kemtikMaterialQoshimcha;
+  return asosiyMaterial + peregorodkaMaydon.value;
 });
 
-// Kemtikka qadar material masofasini hisoblash
+// TO'G'RILANGAN: Kemtikka qadar masofalar XONA devorlaridan hisoblanadi
 const kemtikMasofalar = computed(() => {
   if (!joriyXona.value) return [];
-  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.1 : 0.07;
 
   return joriyXona.value.kemtiklar.map((kemtik) => {
-    // Chapdan kemtikkacha material masofasi
-    const chap = kemtik.x * (1 - foiz);
-    // Yuqoridan kemtikkacha material masofasi
-    const yuqori = kemtik.y * (1 - foiz);
-    // Kemtik o'ngidan devorgacha material masofasi
-    const ong =
-      (joriyXona.value!.uzunlik - kemtik.x - kemtik.uzunlik) * (1 - foiz);
-    // Kemtik pastidan devorgacha material masofasi
-    const past =
-      (joriyXona.value!.kenglik - kemtik.y - kemtik.kenglik) * (1 - foiz);
+    // Xona devorlaridan kemtikkacha masofalar
+    const chap = kemtik.x;
+    const yuqori = kemtik.y;
+    const ong = joriyXona.value!.uzunlik - kemtik.x - kemtik.uzunlik;
+    const past = joriyXona.value!.kenglik - kemtik.y - kemtik.kenglik;
 
     return {
       kemtikId: kemtik.id,
@@ -250,9 +237,6 @@ const kemtikMasofalar = computed(() => {
       yuqori: yuqori.toFixed(2),
       ong: ong.toFixed(2),
       past: past.toFixed(2),
-      // Kemtikni ham hisobga olgan holda to'liq masofalar
-      chapTotal: (chap + kemtik.uzunlik).toFixed(2),
-      yuqoriTotal: (yuqori + kemtik.kenglik).toFixed(2),
     };
   });
 });
@@ -275,13 +259,10 @@ const umumiyXonaMaydon = computed(() => {
 
 const umumiyMaterialMaydon = computed(() => {
   return xonalar.value.reduce((sum, x) => {
-    const maydon = x.uzunlik * x.kenglik;
-    const kemtiklar = x.kemtiklar.reduce(
-      (s, k) => s + k.uzunlik * k.kenglik,
-      0,
-    );
-    const toza = maydon - kemtiklar;
     const foiz = x.mavsumTuri === "issiq" ? 0.1 : 0.07;
+    const materialUzunlik = x.uzunlik * (1 - foiz);
+    const materialKenglik = x.kenglik * (1 - foiz);
+    const asosiyMaterial = materialUzunlik * materialKenglik;
 
     // Peregorodka material
     const peregorodka = x.peregorodkalar.reduce((s, p) => {
@@ -290,17 +271,11 @@ const umumiyMaterialMaydon = computed(() => {
       return s + birinchi + ikkinchi;
     }, 0);
 
-    // Kemtiklar atrofida material kamayishi
-    const kemtikMaterialKamayish = x.kemtiklar.reduce((s, k) => {
-      const kemtikMaydon = k.uzunlik * k.kenglik;
-      return s + kemtikMaydon * foiz;
-    }, 0);
-
-    return sum + toza * (1 - foiz) + peregorodka - kemtikMaterialKamayish;
+    return sum + asosiyMaterial + peregorodka;
   }, 0);
 });
 
-// Chizma chizish
+// TO'G'RILANGAN Chizma chizish
 const chizmaChizish = () => {
   if (!canvas.value || !joriyXona.value) return;
 
@@ -310,14 +285,14 @@ const chizmaChizish = () => {
   // Canvas tozalash
   ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
 
-  const padding = 80;
+  const padding = 100;
   const canvasWidth = canvas.value.width - padding * 2;
   const canvasHeight = canvas.value.height - padding * 2;
 
   // Masshtab
   const scaleX = canvasWidth / joriyXona.value.uzunlik;
   const scaleY = canvasHeight / joriyXona.value.kenglik;
-  const scale = Math.min(scaleX, scaleY, 100); // maksimal 100px/m
+  const scale = Math.min(scaleX, scaleY, 80);
 
   const roomWidth = joriyXona.value.uzunlik * scale;
   const roomHeight = joriyXona.value.kenglik * scale;
@@ -325,387 +300,216 @@ const chizmaChizish = () => {
   const startX = (canvas.value.width - roomWidth) / 2;
   const startY = (canvas.value.height - roomHeight) / 2;
 
-  // Asosiy xona (ko'k rang)
-  ctx.fillStyle = "#DBEAFE";
-  ctx.strokeStyle = "#1E40AF";
+  // Asosiy xona (qora chegara)
+  ctx.fillStyle = "#F5F5F5";
+  ctx.strokeStyle = "#000000";
   ctx.lineWidth = 4;
   ctx.fillRect(startX, startY, roomWidth, roomHeight);
   ctx.strokeRect(startX, startY, roomWidth, roomHeight);
 
-  // Material maydoni (yashil rang, kichikroq)
+  // Material maydoni (qizil rang)
   const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.1 : 0.07;
   const materialWidth = roomWidth * (1 - foiz);
   const materialHeight = roomHeight * (1 - foiz);
   const materialStartX = startX + (roomWidth - materialWidth) / 2;
   const materialStartY = startY + (roomHeight - materialHeight) / 2;
 
-  // Agar kemtik bo'lmasa, oddiy to'rtburchak
-  if (joriyXona.value.kemtiklar.length === 0) {
-    ctx.fillStyle = "rgba(134, 239, 172, 0.5)";
-    ctx.strokeStyle = "#15803D";
-    ctx.lineWidth = 3;
-    ctx.setLineDash([5, 5]);
-    ctx.fillRect(materialStartX, materialStartY, materialWidth, materialHeight);
-    ctx.strokeRect(
-      materialStartX,
-      materialStartY,
-      materialWidth,
-      materialHeight,
-    );
-    ctx.setLineDash([]);
-  } else {
-    // Kemtik bo'lsa, materialning kompleks konturini chizish
-    ctx.save();
-    ctx.fillStyle = "rgba(134, 239, 172, 0.5)";
-    ctx.strokeStyle = "#15803D";
-    ctx.lineWidth = 3;
-    ctx.setLineDash([8, 8]);
+  ctx.fillStyle = "rgba(239, 68, 68, 0.2)";
+  ctx.strokeStyle = "#DC2626";
+  ctx.lineWidth = 3;
+  ctx.fillRect(materialStartX, materialStartY, materialWidth, materialHeight);
+  ctx.strokeRect(materialStartX, materialStartY, materialWidth, materialHeight);
 
-    // Path yordamida materialning konturini chizamiz
-    ctx.beginPath();
-    ctx.rect(materialStartX, materialStartY, materialWidth, materialHeight);
-
-    // Har bir kemtik joyida teshik ochish
-    joriyXona.value.kemtiklar.forEach((kemtik) => {
-      const offsetX = (roomWidth - materialWidth) / 2;
-      const offsetY = (roomHeight - materialHeight) / 2;
-
-      // Kemtikning material koordinatalardagi pozitsiyasi
-      const kemtikMaterialX = startX + kemtik.x * scale + offsetX;
-      const kemtikMaterialY = startY + kemtik.y * scale + offsetY;
-      const kemtikMaterialW = kemtik.uzunlik * scale;
-      const kemtikMaterialH = kemtik.kenglik * scale;
-
-      // Teshik (teskari yo'nalishda)
-      ctx.rect(
-        kemtikMaterialX + kemtikMaterialW,
-        kemtikMaterialY,
-        -kemtikMaterialW,
-        kemtikMaterialH,
-      );
-    });
-
-    ctx.fill("evenodd");
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
-  }
-
-  // Material o'lchamlarini CHIZMA ICHIDA ko'rsatish
-  ctx.fillStyle = "#15803D";
-  ctx.font = "bold 28px Arial";
-  const materialUzunlik = (joriyXona.value.uzunlik * (1 - foiz)).toFixed(2);
-  const materialKenglik = (joriyXona.value.kenglik * (1 - foiz)).toFixed(2);
-
-  // Yuqori chap burchakda material o'lchamlari
-  ctx.fillText(
-    `Material: ${materialUzunlik}×${materialKenglik}m`,
-    materialStartX + 20,
-    materialStartY + 40,
-  );
-
-  // Material foizini ko'rsatish
-  ctx.font = "bold 24px Arial";
-  ctx.fillStyle = "#166534";
-  ctx.fillText(
-    `(-${foizKamayish.value}%)`,
-    materialStartX + 20,
-    materialStartY + 70,
-  );
-
-  // Kemtiklar uchun material masofalarini ko'rsatish
+  // Kemtiklar (sariq rang)
   joriyXona.value.kemtiklar.forEach((kemtik) => {
-    const offsetX = (roomWidth - materialWidth) / 2;
-    const offsetY = (roomHeight - materialHeight) / 2;
-
-    // Kemtikning material koordinatalardagi pozitsiyasi
-    const kemtikMaterialX = startX + kemtik.x * scale + offsetX;
-    const kemtikMaterialY = startY + kemtik.y * scale + offsetY;
-    const kemtikMaterialW = kemtik.uzunlik * scale;
-    const kemtikMaterialH = kemtik.kenglik * scale;
-
-    // Chapdan kemtikkacha masofa
-    const chapMasofa = (kemtik.x * (1 - foiz)).toFixed(2);
-    const yuqoriMasofa = (kemtik.y * (1 - foiz)).toFixed(2);
-    const ongMasofa = (
-      (joriyXona.value!.uzunlik - kemtik.x - kemtik.uzunlik) *
-      (1 - foiz)
-    ).toFixed(2);
-    const pastMasofa = (
-      (joriyXona.value!.kenglik - kemtik.y - kemtik.kenglik) *
-      (1 - foiz)
-    ).toFixed(2);
-
-    // Chiziqlar va o'lchamlar
-    ctx.strokeStyle = "#DC2626";
-    ctx.lineWidth = 3;
-    ctx.setLineDash([]);
-
-    // Gorizontal chiziqlar (yuqori va pastda)
-    if (parseFloat(chapMasofa) > 0.1) {
-      // Yuqoridan chapdan kemtikkacha chiziq
-      ctx.beginPath();
-      ctx.moveTo(materialStartX, kemtikMaterialY - 18);
-      ctx.lineTo(kemtikMaterialX, kemtikMaterialY - 18);
-      ctx.stroke();
-
-      // O'lcham
-      ctx.fillStyle = "#DC2626";
-      ctx.font = "bold 16px Arial";
-      ctx.fillText(
-        `${chapMasofa}m`,
-        materialStartX + (kemtikMaterialX - materialStartX) / 2 - 20,
-        kemtikMaterialY - 25,
-      );
-    }
-
-    if (parseFloat(ongMasofa) > 0.1) {
-      // Yuqoridan kemtikdan o'ngga chiziq
-      ctx.beginPath();
-      ctx.moveTo(kemtikMaterialX + kemtikMaterialW, kemtikMaterialY - 18);
-      ctx.lineTo(materialStartX + materialWidth, kemtikMaterialY - 18);
-      ctx.stroke();
-
-      // O'lcham
-      ctx.fillStyle = "#DC2626";
-      ctx.font = "bold 16px Arial";
-      ctx.fillText(
-        `${ongMasofa}m`,
-        kemtikMaterialX +
-          kemtikMaterialW +
-          (materialStartX + materialWidth - kemtikMaterialX - kemtikMaterialW) /
-            2 -
-          20,
-        kemtikMaterialY - 25,
-      );
-    }
-
-    // Vertikal chiziqlar (chap va o'ngda)
-    if (parseFloat(yuqoriMasofa) > 0.1) {
-      // Chapdan yuqoridan kemtikkacha chiziq
-      ctx.beginPath();
-      ctx.moveTo(kemtikMaterialX - 15, materialStartY);
-      ctx.lineTo(kemtikMaterialX - 15, kemtikMaterialY);
-      ctx.stroke();
-
-      // O'lcham (vertikal)
-      ctx.save();
-      ctx.fillStyle = "#DC2626";
-      ctx.font = "bold 16px Arial";
-      ctx.translate(
-        kemtikMaterialX - 20,
-        materialStartY + (kemtikMaterialY - materialStartY) / 2,
-      );
-      ctx.rotate(-Math.PI / 2);
-      ctx.fillText(`${yuqoriMasofa}m`, -20, 0);
-      ctx.restore();
-    }
-
-    if (parseFloat(pastMasofa) > 0.1) {
-      // Chapdan kemtikdan pastga chiziq
-      ctx.beginPath();
-      ctx.moveTo(kemtikMaterialX - 15, kemtikMaterialY + kemtikMaterialH);
-      ctx.lineTo(kemtikMaterialX - 15, materialStartY + materialHeight);
-      ctx.stroke();
-
-      // O'lcham (vertikal)
-      ctx.save();
-      ctx.fillStyle = "#DC2626";
-      ctx.font = "bold 16px Arial";
-      ctx.translate(
-        kemtikMaterialX - 20,
-        kemtikMaterialY +
-          kemtikMaterialH +
-          (materialStartY +
-            materialHeight -
-            kemtikMaterialY -
-            kemtikMaterialH) /
-            2,
-      );
-      ctx.rotate(-Math.PI / 2);
-      ctx.fillText(`${pastMasofa}m`, -20, 0);
-      ctx.restore();
-    }
-
-    // Kemtik o'lchamini material ichida ko'rsatish
-    ctx.fillStyle = "#7F1D1D";
-    ctx.font = "bold 15px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      `Kemtik: ${kemtik.uzunlik}×${kemtik.kenglik}m`,
-      kemtikMaterialX + kemtikMaterialW / 2,
-      kemtikMaterialY + kemtikMaterialH / 2,
-    );
-    ctx.textAlign = "left";
-  });
-
-  // Kemtiklar (qizil rang)
-  ctx.fillStyle = "#FEE2E2";
-  ctx.strokeStyle = "#991B1B";
-  ctx.lineWidth = 2.5;
-
-  joriyXona.value.kemtiklar.forEach((kemtik) => {
+    const kemtikX = startX + kemtik.x * scale;
+    const kemtikY = startY + kemtik.y * scale;
     const kemtikW = kemtik.uzunlik * scale;
     const kemtikH = kemtik.kenglik * scale;
 
-    // Metr koordinatalardan pixel koordinatalarga o'tkazish
-    // x va y - bu kemtikning chap-yuqori burchagining koordinatalari
-    const kemtikX = startX + kemtik.x * scale;
-    const kemtikY = startY + kemtik.y * scale;
-
-    // Kemtikning o'zi
-    ctx.fillStyle = "#FEE2E2";
-    ctx.strokeStyle = "#991B1B";
-    ctx.lineWidth = 2.5;
+    ctx.fillStyle = "#FEF3C7";
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 2;
     ctx.fillRect(kemtikX, kemtikY, kemtikW, kemtikH);
     ctx.strokeRect(kemtikX, kemtikY, kemtikW, kemtikH);
 
     // Kemtik nomi
-    ctx.fillStyle = "#991B1B";
-    ctx.font = "bold 16px Arial";
+    ctx.fillStyle = "#000000";
+    ctx.font = "14px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(kemtik.nom, kemtikX + kemtikW / 2, kemtikY + kemtikH / 2 + 6);
+    ctx.fillText(kemtik.nom, kemtikX + kemtikW / 2, kemtikY + kemtikH / 2);
     ctx.textAlign = "left";
-
-    // Kemtik o'lchamlarini ko'rsatish
-    ctx.fillStyle = "#7F1D1D";
-    ctx.font = "bold 15px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      `${kemtik.uzunlik}×${kemtik.kenglik}m`,
-      kemtikX + kemtikW / 2,
-      kemtikY - 10,
-    );
-    ctx.textAlign = "left";
-
-    // Kemtik koordinatalarini ko'rsatish
-    ctx.fillStyle = "#7F1D1D";
-    ctx.font = "13px Arial";
-    ctx.fillText(
-      `X:${kemtik.x}m Y:${kemtik.y}m`,
-      kemtikX + 3,
-      kemtikY + kemtikH + 18,
-    );
   });
 
-  // Peregorodkalar (sariq rang)
+  // Xona o'lchamlarini ko'rsatish (tepada va chapda)
+  ctx.fillStyle = "#000000";
+  ctx.font = "bold 16px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(
+    `${joriyXona.value.uzunlik.toFixed(2)} metr`,
+    startX + roomWidth / 2,
+    startY - 25,
+  );
+  ctx.textAlign = "left";
+
+  ctx.save();
+  ctx.translate(startX - 45, startY + roomHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.font = "bold 16px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(`${joriyXona.value.kenglik.toFixed(2)} m`, 0, 0);
+  ctx.restore();
+
+  // Material o'lchamlarini ko'rsatish (qizil rangda)
+  const materialUzunlik = (joriyXona.value.uzunlik * (1 - foiz)).toFixed(2);
+  const materialKenglik = (joriyXona.value.kenglik * (1 - foiz)).toFixed(2);
+
+  ctx.fillStyle = "#DC2626";
+  ctx.font = "bold 14px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(
+    `${materialUzunlik} m`,
+    materialStartX + materialWidth / 2,
+    materialStartY - 10,
+  );
+  ctx.textAlign = "left";
+
+  ctx.save();
+  ctx.translate(materialStartX - 35, materialStartY + materialHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.font = "bold 14px Arial";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#DC2626";
+  ctx.fillText(`${materialKenglik} m`, 0, 0);
+  ctx.restore();
+
+  // Kemtik masofalarini ko'rsatish (xona devorlaridan)
+  joriyXona.value.kemtiklar.forEach((kemtik) => {
+    const kemtikX = startX + kemtik.x * scale;
+    const kemtikY = startY + kemtik.y * scale;
+    const kemtikW = kemtik.uzunlik * scale;
+    const kemtikH = kemtik.kenglik * scale;
+
+    const chap = kemtik.x.toFixed(2);
+    const yuqori = kemtik.y.toFixed(2);
+    const ong = (joriyXona.value!.uzunlik - kemtik.x - kemtik.uzunlik).toFixed(
+      2,
+    );
+    const past = (
+      joriyXona.value!.kenglik -
+      kemtik.y -
+      kemtik.kenglik
+    ).toFixed(2);
+
+    ctx.strokeStyle = "#DC2626";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 3]);
+
+    // Chap masofa
+    if (parseFloat(chap) > 0.05) {
+      ctx.beginPath();
+      ctx.moveTo(startX, kemtikY - 8);
+      ctx.lineTo(kemtikX, kemtikY - 8);
+      ctx.stroke();
+
+      ctx.fillStyle = "#DC2626";
+      ctx.font = "12px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(`${chap} m`, startX + (kemtikX - startX) / 2, kemtikY - 12);
+    }
+
+    // O'ng masofa
+    if (parseFloat(ong) > 0.05) {
+      ctx.beginPath();
+      ctx.moveTo(kemtikX + kemtikW, kemtikY - 8);
+      ctx.lineTo(startX + roomWidth, kemtikY - 8);
+      ctx.stroke();
+
+      ctx.fillStyle = "#DC2626";
+      ctx.font = "12px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(
+        `${ong} m`,
+        kemtikX + kemtikW + (startX + roomWidth - kemtikX - kemtikW) / 2,
+        kemtikY - 12,
+      );
+    }
+
+    // Yuqori masofa
+    if (parseFloat(yuqori) > 0.05) {
+      ctx.beginPath();
+      ctx.moveTo(kemtikX - 8, startY);
+      ctx.lineTo(kemtikX - 8, kemtikY);
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(kemtikX - 12, startY + (kemtikY - startY) / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = "#DC2626";
+      ctx.font = "12px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(`${yuqori} m`, 0, 0);
+      ctx.restore();
+    }
+
+    // Pastki masofa
+    if (parseFloat(past) > 0.05) {
+      ctx.beginPath();
+      ctx.moveTo(kemtikX - 8, kemtikY + kemtikH);
+      ctx.lineTo(kemtikX - 8, startY + roomHeight);
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(
+        kemtikX - 12,
+        kemtikY + kemtikH + (startY + roomHeight - kemtikY - kemtikH) / 2,
+      );
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = "#DC2626";
+      ctx.font = "12px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(`${past} m`, 0, 0);
+      ctx.restore();
+    }
+
+    ctx.setLineDash([]);
+    ctx.textAlign = "left";
+
+    // Kemtik o'lchamlari
+    ctx.fillStyle = "#000000";
+    ctx.font = "bold 12px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      `${kemtik.uzunlik} m`,
+      kemtikX + kemtikW / 2,
+      kemtikY + kemtikH + 15,
+    );
+    ctx.fillText(
+      `${kemtik.kenglik} m`,
+      kemtikX + kemtikW + 25,
+      kemtikY + kemtikH / 2,
+    );
+    ctx.textAlign = "left";
+  });
+
+  // Peregorodkalar
   ctx.strokeStyle = "#A16207";
   ctx.lineWidth = 5;
 
-  let peregorodkaY = startY + roomHeight * 0.3;
   joriyXona.value.peregorodkalar.forEach((per, index) => {
-    peregorodkaY =
+    const peregorodkaY =
       startY +
       (roomHeight / (joriyXona.value!.peregorodkalar.length + 1)) * (index + 1);
 
-    // Peregorodka chizig'i
     ctx.beginPath();
     ctx.moveTo(startX, peregorodkaY);
     ctx.lineTo(startX + roomWidth, peregorodkaY);
     ctx.stroke();
 
-    // Birinchi tomon material maydoni
-    const birinchiH = per.birinchiTomon * scale;
-    const mat1H = birinchiH * (1 - foiz);
-    const mat1Y = startY + (peregorodkaY - startY - mat1H) / 2;
-
-    ctx.fillStyle = "rgba(253, 224, 71, 0.3)";
-    ctx.fillRect(materialStartX, mat1Y, materialWidth, mat1H);
-
-    // Ikkinchi tomon material maydoni
-    const ikkinchiH = per.ikkinchiTomon * scale;
-    const mat2H = ikkinchiH * (1 - foiz);
-    const mat2Y =
-      peregorodkaY + (startY + roomHeight - peregorodkaY - mat2H) / 2;
-
-    ctx.fillRect(materialStartX, mat2Y, materialWidth, mat2H);
-
-    // Peregorodka nomi
     ctx.fillStyle = "#A16207";
-    ctx.font = "bold 16px Arial";
+    ctx.font = "bold 14px Arial";
     ctx.fillText(per.nom, startX + roomWidth + 15, peregorodkaY + 6);
   });
-
-  // O'lchamlar
-  ctx.fillStyle = "#000000";
-  ctx.font = "16px Arial";
-
-  // Uzunlik
-  ctx.fillText(
-    `${joriyXona.value.uzunlik.toFixed(2)} m`,
-    startX + roomWidth / 2 - 35,
-    startY - 15,
-  );
-
-  // Kenglik
-  ctx.save();
-  ctx.translate(startX - 35, startY + roomHeight / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillText(`${joriyXona.value.kenglik.toFixed(2)} m`, 0, 0);
-  ctx.restore();
-
-  // Legenda
-  ctx.font = "13px Arial";
-  const legendY = startY + roomHeight + 45;
-  const legendStartX = startX - 20;
-
-  // Birinchi qator
-  ctx.fillStyle = "#1E40AF";
-  ctx.fillRect(legendStartX, legendY, 20, 15);
-  ctx.strokeStyle = "#1E40AF";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(legendStartX, legendY, 20, 15);
-  ctx.fillStyle = "#000000";
-  ctx.fillText("- Xona", legendStartX + 25, legendY + 11);
-
-  ctx.fillStyle = "#991B1B";
-  ctx.fillRect(legendStartX + 100, legendY, 20, 15);
-  ctx.strokeStyle = "#991B1B";
-  ctx.strokeRect(legendStartX + 100, legendY, 20, 15);
-  ctx.fillStyle = "#000000";
-  ctx.fillText("- Kemtik (asosiy)", legendStartX + 125, legendY + 11);
-
-  // Ikkinchi qator
-  const legendY2 = legendY + 22;
-  ctx.fillStyle = "rgba(134, 239, 172, 0.5)";
-  ctx.fillRect(legendStartX, legendY2, 20, 15);
-  ctx.strokeStyle = "#15803D";
-  ctx.lineWidth = 1;
-  ctx.setLineDash([5, 5]);
-  ctx.strokeRect(legendStartX, legendY2, 20, 15);
-  ctx.setLineDash([]);
-  ctx.fillStyle = "#000000";
-  ctx.fillText(
-    `- Material (-${foizKamayish.value}%)`,
-    legendStartX + 25,
-    legendY2 + 11,
-  );
-
-  ctx.fillStyle = "rgba(254, 243, 199, 0.8)";
-  ctx.fillRect(legendStartX + 160, legendY2, 20, 15);
-  ctx.strokeStyle = "#F59E0B";
-  ctx.lineWidth = 1;
-  ctx.setLineDash([3, 3]);
-  ctx.strokeRect(legendStartX + 160, legendY2, 20, 15);
-  ctx.setLineDash([]);
-  ctx.fillStyle = "#000000";
-  ctx.fillText(
-    `- Kemtik material (-${foizKamayish.value}%)`,
-    legendStartX + 185,
-    legendY2 + 11,
-  );
-
-  // Uchinchi qator (agar peregorodka bo'lsa)
-  if (joriyXona.value.peregorodkalar.length > 0) {
-    const legendY3 = legendY2 + 22;
-    ctx.fillStyle = "#A16207";
-    ctx.fillRect(legendStartX, legendY3, 20, 15);
-    ctx.strokeStyle = "#A16207";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(legendStartX, legendY3, 20, 15);
-    ctx.fillStyle = "#000000";
-    ctx.fillText("- Peregorodka", legendStartX + 25, legendY3 + 11);
-  }
 };
 
 // Xonadonni saqlash
@@ -738,7 +542,6 @@ const xonadonSaqlash = () => {
   xonadonNomi.value = "";
   tanlangan.value = [];
 
-  // LocalStorage ga saqlash
   localStorage.setItem("xonadonlar", JSON.stringify(xonadonlar.value));
 
   alert("Xonadon muvaffaqiyatli saqlandi!");
@@ -947,15 +750,15 @@ onMounted(() => {
               <!-- Material o'lchamlari ro'yxati (o'ng tomon) -->
               <div v-if="joriyXona" class="space-y-3">
                 <div
-                  class="bg-linear-to-br from-green-50 to-emerald-50 rounded-lg p-4 border-2 border-green-200"
+                  class="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-4 border-2 border-red-200"
                 >
-                  <h3 class="text-sm font-bold text-green-800 mb-2">
+                  <h3 class="text-sm font-bold text-red-800 mb-2">
                     📏 Material O'lchamlari
                   </h3>
                   <div class="space-y-2 text-sm">
                     <div class="bg-white rounded p-2">
                       <p class="text-xs text-gray-600">Uzunlik</p>
-                      <p class="font-bold text-green-700">
+                      <p class="font-bold text-red-700">
                         {{
                           (
                             joriyXona.uzunlik *
@@ -967,7 +770,7 @@ onMounted(() => {
                     </div>
                     <div class="bg-white rounded p-2">
                       <p class="text-xs text-gray-600">Kenglik</p>
-                      <p class="font-bold text-green-700">
+                      <p class="font-bold text-red-700">
                         {{
                           (
                             joriyXona.kenglik *
@@ -979,33 +782,33 @@ onMounted(() => {
                     </div>
                     <div class="bg-white rounded p-2">
                       <p class="text-xs text-gray-600">Jami maydon</p>
-                      <p class="font-bold text-green-700">
+                      <p class="font-bold text-red-700">
                         {{ materialMaydon.toFixed(2) }}m²
                       </p>
                     </div>
-                    <div class="bg-green-100 rounded p-2">
-                      <p class="text-xs text-green-700">Kamayish</p>
-                      <p class="font-bold text-green-800">
+                    <div class="bg-red-100 rounded p-2">
+                      <p class="text-xs text-red-700">Kamayish</p>
+                      <p class="font-bold text-red-800">
                         -{{ foizKamayish }}%
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <!-- Kemtik masofalar (agar mavjud bo'lsa) -->
+                <!-- Kemtik masofalar (xona devorlaridan) -->
                 <div
                   v-if="joriyXona.kemtiklar.length > 0"
-                  class="bg-linear-to-br from-red-50 to-orange-50 rounded-lg p-4 border-2 border-red-200"
+                  class="bg-linear-to-br from-orange-50 to-orange-100 rounded-lg p-4 border-2 border-orange-200"
                 >
-                  <h3 class="text-sm font-bold text-red-800 mb-2">
-                    🔴 Kemtik Masofalar
+                  <h3 class="text-sm font-bold text-orange-800 mb-2">
+                    🟡 Kemtik Masofalar (xona devorlaridan)
                   </h3>
                   <div
                     v-for="masofa in kemtikMasofalar"
                     :key="masofa.kemtikId"
                     class="mb-3 last:mb-0"
                   >
-                    <p class="text-xs font-semibold text-red-700 mb-1">
+                    <p class="text-xs font-semibold text-orange-700 mb-1">
                       {{ masofa.kemtikNom }}
                     </p>
                     <div class="space-y-1 text-xs">
@@ -1091,9 +894,9 @@ onMounted(() => {
                 </p>
               </div>
 
-              <div class="bg-red-50 rounded-lg p-4">
+              <div class="bg-orange-50 rounded-lg p-4">
                 <p class="text-sm text-gray-600 mb-1">Kemtiklar</p>
-                <p class="text-2xl font-bold text-red-600">
+                <p class="text-2xl font-bold text-orange-600">
                   {{ kemtiklarMaydon.toFixed(2) }} m²
                 </p>
               </div>
@@ -1105,11 +908,11 @@ onMounted(() => {
                 </p>
               </div>
 
-              <div class="bg-indigo-50 rounded-lg p-4">
+              <div class="bg-red-50 rounded-lg p-4">
                 <p class="text-sm text-gray-600 mb-1">
                   Material (-{{ foizKamayish }}%)
                 </p>
-                <p class="text-2xl font-bold text-indigo-600">
+                <p class="text-2xl font-bold text-red-600">
                   {{ materialMaydon.toFixed(2) }} m²
                 </p>
               </div>
@@ -1121,10 +924,10 @@ onMounted(() => {
             >
               <div
                 v-if="joriyXona.kemtiklar.length > 0"
-                class="bg-orange-50 rounded-lg p-4"
+                class="bg-yellow-50 rounded-lg p-4"
               >
                 <p class="text-sm text-gray-600 mb-1">Kemtiklar Material</p>
-                <p class="text-xl font-bold text-orange-600">
+                <p class="text-xl font-bold text-yellow-600">
                   {{ kemtiklarMaterialMaydon.toFixed(2) }} m²
                 </p>
                 <p class="text-xs text-gray-500 mt-1">
@@ -1134,10 +937,10 @@ onMounted(() => {
 
               <div
                 v-if="peregorodkaMaydon > 0"
-                class="bg-yellow-50 rounded-lg p-4"
+                class="bg-amber-50 rounded-lg p-4"
               >
                 <p class="text-sm text-gray-600 mb-1">Peregorodka Material</p>
-                <p class="text-xl font-bold text-yellow-600">
+                <p class="text-xl font-bold text-amber-600">
                   {{ peregorodkaMaydon.toFixed(2) }} m²
                 </p>
               </div>
@@ -1149,7 +952,7 @@ onMounted(() => {
             <!-- Kemtik -->
             <div class="bg-white rounded-xl shadow-lg p-6">
               <h3 class="text-lg font-bold text-gray-800 mb-4">
-                🔴 Kemtik Qo'shish
+                🟡 Kemtik Qo'shish
               </h3>
 
               <div class="space-y-3">
@@ -1157,7 +960,7 @@ onMounted(() => {
                   v-model="yangiKemtikNom"
                   type="text"
                   placeholder="Kemtik nomi"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
                 />
 
                 <div class="grid grid-cols-2 gap-2">
@@ -1166,26 +969,26 @@ onMounted(() => {
                     type="number"
                     step="0.01"
                     placeholder="Kemtik kengligi (m)"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
                   />
                   <input
                     v-model="yangiKemtikKenglik"
                     type="number"
                     step="0.01"
                     placeholder="Kemtik uzunligi (m)"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
                   />
                 </div>
 
-                <div class="bg-red-50 rounded-lg p-3 space-y-2">
+                <div class="bg-yellow-50 rounded-lg p-3 space-y-2">
                   <p class="text-xs font-semibold text-gray-700">
-                    📍 Pozitsiya (metrda, qaysi qismida turishi)
+                    📍 Pozitsiya (xona devorlaridan masofa)
                   </p>
 
                   <div class="grid grid-cols-2 gap-2">
                     <div>
                       <label class="text-xs text-gray-600"
-                        >Xonaning chap qismidan (m) (eni)</label
+                        >Chapdan (m)</label
                       >
                       <input
                         v-model="yangiKemtikX"
@@ -1194,12 +997,12 @@ onMounted(() => {
                         :max="joriyXona ? joriyXona.uzunlik : 100"
                         step="0.01"
                         placeholder="0.00"
-                        class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-yellow-500"
                       />
                     </div>
                     <div>
                       <label class="text-xs text-gray-600"
-                        >Xonaning yuqori qismidan (m) (uzunligi)</label
+                        >Yuqoridan (m)</label
                       >
                       <input
                         v-model="yangiKemtikY"
@@ -1208,7 +1011,7 @@ onMounted(() => {
                         :max="joriyXona ? joriyXona.kenglik : 100"
                         step="0.01"
                         placeholder="0.00"
-                        class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-yellow-500"
                       />
                     </div>
                   </div>
@@ -1221,23 +1024,16 @@ onMounted(() => {
                       Xona: {{ joriyXona.uzunlik }}×{{ joriyXona.kenglik }}m
                     </p>
                     <ul class="text-xs text-gray-600 mt-1 space-y-0.5">
-                      <li>• Chap-yuqori: X=0, Y=0</li>
+                      <li>• Chap-yuqori burchak: X=0, Y=0</li>
                       <li>
-                        • O'ng-yuqori: X={{
+                        • O'ng-yuqori burchak: X={{
                           (
                             joriyXona.uzunlik - (yangiKemtikUzunlik || 0.5)
                           ).toFixed(2)
                         }}, Y=0
                       </li>
                       <li>
-                        • Chap-past: X=0, Y={{
-                          (
-                            joriyXona.kenglik - (yangiKemtikKenglik || 0.5)
-                          ).toFixed(2)
-                        }}
-                      </li>
-                      <li>
-                        • O'ng-past: X={{
+                        • O'ng-past burchak: X={{
                           (
                             joriyXona.uzunlik - (yangiKemtikUzunlik || 0.5)
                           ).toFixed(2)
@@ -1253,7 +1049,7 @@ onMounted(() => {
 
                 <button
                   @click="kemtikQoshish"
-                  class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition duration-200"
+                  class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-lg transition duration-200"
                 >
                   Kemtik Qo'shish
                 </button>
@@ -1266,7 +1062,7 @@ onMounted(() => {
                 <div
                   v-for="kemtik in joriyXona.kemtiklar"
                   :key="kemtik.id"
-                  class="flex justify-between items-center bg-red-50 p-2 rounded text-sm"
+                  class="flex justify-between items-center bg-yellow-50 p-2 rounded text-sm"
                 >
                   <div>
                     <div class="font-medium">{{ kemtik.nom }}</div>
@@ -1297,25 +1093,25 @@ onMounted(() => {
                   v-model="yangiPeregorodkaNom"
                   type="text"
                   placeholder="Peregorodka nomi"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
                 />
                 <input
                   v-model="yangiPeregorodkaBirinchi"
                   type="number"
                   step="0.01"
                   placeholder="1-tomon (m)"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
                 />
                 <input
                   v-model="yangiPeregorodkaIkkinchi"
                   type="number"
                   step="0.01"
                   placeholder="2-tomon (m)"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
                 />
                 <button
                   @click="peregorodkaQoshish"
-                  class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-lg transition duration-200"
+                  class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg transition duration-200"
                 >
                   Peregorodka Qo'shish
                 </button>
@@ -1331,7 +1127,7 @@ onMounted(() => {
                 <div
                   v-for="per in joriyXona.peregorodkalar"
                   :key="per.id"
-                  class="flex justify-between items-center bg-yellow-50 p-2 rounded text-sm"
+                  class="flex justify-between items-center bg-amber-50 p-2 rounded text-sm"
                 >
                   <span
                     >{{ per.nom }} ({{ per.birinchiTomon }}m |
@@ -1339,7 +1135,7 @@ onMounted(() => {
                   >
                   <button
                     @click="peregorodkaOchirish(per.id)"
-                    class="text-yellow-600 hover:text-yellow-800 font-bold"
+                    class="text-amber-600 hover:text-amber-800 font-bold"
                   >
                     ×
                   </button>
@@ -1377,7 +1173,7 @@ onMounted(() => {
           </div>
 
           <div
-            class="bg-linear-to-br from-indigo-500 to-indigo-600 rounded-xl p-6 text-white"
+            class="bg-linear-to-br from-red-500 to-red-600 rounded-xl p-6 text-white"
           >
             <p class="text-sm opacity-90 mb-2">Umumiy Material</p>
             <p class="text-4xl font-bold">
