@@ -370,8 +370,8 @@ const chizmaChizish = () => {
       // Kemtik + material kamayishi = teshik
       const holeX = kemtikCanvasX - materialGapX;
       const holeY = kemtikCanvasY - materialGapY;
-      const holeW = kemtikCanvasW + materialGapX + (joriyXona.value.uzunlik - kemtikXInRoom - kemtik.uzunlik) * foiz * scale;
-      const holeH = kemtikCanvasH + materialGapY + (joriyXona.value.kenglik - kemtikYInRoom - kemtik.kenglik) * foiz * scale;
+      const holeW = kemtikCanvasW + materialGapX + (joriyXona.value!.uzunlik - kemtikXInRoom - kemtik.uzunlik) * foiz * scale;
+      const holeH = kemtikCanvasH + materialGapY + (joriyXona.value!.kenglik - kemtikYInRoom - kemtik.kenglik) * foiz * scale;
       
       // Teshikni material ichidan ayirish (teskari yo'nalishda)
       ctx.rect(holeX + holeW, holeY, -holeW, holeH);
