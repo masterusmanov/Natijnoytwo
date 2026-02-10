@@ -219,16 +219,30 @@ const materialMaydon = computed(() => {
   return asosiyMaterial + peregorodkaMaydon.value;
 });
 
-// TO'G'RILANGAN: Kemtikka qadar masofalar XONA devorlaridan hisoblanadi
+// TO'G'RILANGAN: Kemtikka qadar masofalar MATERIAL devorlaridan hisoblanadi
 const kemtikMasofalar = computed(() => {
   if (!joriyXona.value) return [];
+  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.1 : 0.07;
 
   return joriyXona.value.kemtiklar.map((kemtik) => {
-    // Xona devorlaridan kemtikkacha masofalar
-    const chap = kemtik.x;
-    const yuqori = kemtik.y;
-    const ong = joriyXona.value!.uzunlik - kemtik.x - kemtik.uzunlik;
-    const past = joriyXona.value!.kenglik - kemtik.y - kemtik.kenglik;
+    // Material devorlaridan kemtikkacha masofalar
+    // Chapdan: kemtik.x dan material gap ni ayiramiz
+    const chapMaterialGap = kemtik.x * foiz;
+    const chap = kemtik.x - chapMaterialGap;
+    
+    // Yuqoridan
+    const yuqoriMaterialGap = kemtik.y * foiz;
+    const yuqori = kemtik.y - yuqoriMaterialGap;
+    
+    // O'ngdan
+    const ongDistance = joriyXona.value!.uzunlik - kemtik.x - kemtik.uzunlik;
+    const ongMaterialGap = ongDistance * foiz;
+    const ong = ongDistance - ongMaterialGap;
+    
+    // Pastdan
+    const pastDistance = joriyXona.value!.kenglik - kemtik.y - kemtik.kenglik;
+    const pastMaterialGap = pastDistance * foiz;
+    const past = pastDistance - pastMaterialGap;
 
     return {
       kemtikId: kemtik.id,
@@ -307,18 +321,66 @@ const chizmaChizish = () => {
   ctx.fillRect(startX, startY, roomWidth, roomHeight);
   ctx.strokeRect(startX, startY, roomWidth, roomHeight);
 
-  // Material maydoni (qizil rang)
+  // Material maydoni (qizil rang) - kemtiklar bilan kompleks shakl
   const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.1 : 0.07;
+  
+  // Asosiy material o'lchamlari
   const materialWidth = roomWidth * (1 - foiz);
   const materialHeight = roomHeight * (1 - foiz);
   const materialStartX = startX + (roomWidth - materialWidth) / 2;
   const materialStartY = startY + (roomHeight - materialHeight) / 2;
 
+  // Materialning kompleks konturini chizish (kemtiklar bilan)
+  ctx.save();
   ctx.fillStyle = "rgba(239, 68, 68, 0.2)";
   ctx.strokeStyle = "#DC2626";
   ctx.lineWidth = 3;
-  ctx.fillRect(materialStartX, materialStartY, materialWidth, materialHeight);
-  ctx.strokeRect(materialStartX, materialStartY, materialWidth, materialHeight);
+
+  // Path yordamida materialning konturini chizamiz
+  ctx.beginPath();
+  
+  if (joriyXona.value.kemtiklar.length === 0) {
+    // Kemtik bo'lmasa, oddiy to'rtburchak
+    ctx.rect(materialStartX, materialStartY, materialWidth, materialHeight);
+  } else {
+    // Kemtiklar bor - kompleks shakl
+    // Har bir kemtik atrofida material kamayadi
+    
+    // Asosiy material to'rtburchak
+    ctx.rect(materialStartX, materialStartY, materialWidth, materialHeight);
+    
+    // Har bir kemtik uchun teshik (kemtik + uning atrofidagi bo'shliq)
+    joriyXona.value.kemtiklar.forEach((kemtik) => {
+      // Kemtikning xona koordinatalari
+      const kemtikXInRoom = kemtik.x;
+      const kemtikYInRoom = kemtik.y;
+      
+      // Kemtikning canvas koordinatalari
+      const kemtikCanvasX = startX + kemtikXInRoom * scale;
+      const kemtikCanvasY = startY + kemtikYInRoom * scale;
+      const kemtikCanvasW = kemtik.uzunlik * scale;
+      const kemtikCanvasH = kemtik.kenglik * scale;
+      
+      // Material kamayishi (har tomondan)
+      const materialGapX = kemtikXInRoom * foiz * scale;
+      const materialGapY = kemtikYInRoom * foiz * scale;
+      const materialGapW = kemtik.uzunlik * foiz * scale;
+      const materialGapH = kemtik.kenglik * foiz * scale;
+      
+      // Kemtik + material kamayishi = teshik
+      const holeX = kemtikCanvasX - materialGapX;
+      const holeY = kemtikCanvasY - materialGapY;
+      const holeW = kemtikCanvasW + materialGapX + (joriyXona.value.uzunlik - kemtikXInRoom - kemtik.uzunlik) * foiz * scale;
+      const holeH = kemtikCanvasH + materialGapY + (joriyXona.value.kenglik - kemtikYInRoom - kemtik.kenglik) * foiz * scale;
+      
+      // Teshikni material ichidan ayirish (teskari yo'nalishda)
+      ctx.rect(holeX + holeW, holeY, -holeW, holeH);
+    });
+  }
+  
+  ctx.fill("evenodd");
+  ctx.stroke();
+  ctx.restore();
 
   // Kemtiklar (sariq rang)
   joriyXona.value.kemtiklar.forEach((kemtik) => {
@@ -360,7 +422,7 @@ const chizmaChizish = () => {
   ctx.fillText(`${joriyXona.value.kenglik.toFixed(2)} m`, 0, 0);
   ctx.restore();
 
-  // Material o'lchamlarini ko'rsatish (qizil rangda)
+  // Material o'lchamlarini ko'rsatish (qizil rangda, material ichida)
   const materialUzunlik = (joriyXona.value.uzunlik * (1 - foiz)).toFixed(2);
   const materialKenglik = (joriyXona.value.kenglik * (1 - foiz)).toFixed(2);
 
@@ -370,12 +432,12 @@ const chizmaChizish = () => {
   ctx.fillText(
     `${materialUzunlik} m`,
     materialStartX + materialWidth / 2,
-    materialStartY - 10,
+    materialStartY + 20,
   );
   ctx.textAlign = "left";
 
   ctx.save();
-  ctx.translate(materialStartX - 35, materialStartY + materialHeight / 2);
+  ctx.translate(materialStartX + 20, materialStartY + materialHeight / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.font = "bold 14px Arial";
   ctx.textAlign = "center";
@@ -383,46 +445,52 @@ const chizmaChizish = () => {
   ctx.fillText(`${materialKenglik} m`, 0, 0);
   ctx.restore();
 
-  // Kemtik masofalarini ko'rsatish (xona devorlaridan)
+  // Kemtik masofalarini ko'rsatish (material devorlaridan)
   joriyXona.value.kemtiklar.forEach((kemtik) => {
     const kemtikX = startX + kemtik.x * scale;
     const kemtikY = startY + kemtik.y * scale;
     const kemtikW = kemtik.uzunlik * scale;
     const kemtikH = kemtik.kenglik * scale;
 
-    const chap = kemtik.x.toFixed(2);
-    const yuqori = kemtik.y.toFixed(2);
-    const ong = (joriyXona.value!.uzunlik - kemtik.x - kemtik.uzunlik).toFixed(
-      2,
-    );
-    const past = (
-      joriyXona.value!.kenglik -
-      kemtik.y -
-      kemtik.kenglik
-    ).toFixed(2);
+    // Material masofalar (har tomondan material kamayishi bilan)
+    const chapDistance = kemtik.x;
+    const chapMaterialGap = chapDistance * foiz;
+    const chap = (chapDistance - chapMaterialGap).toFixed(2);
+    
+    const yuqoriDistance = kemtik.y;
+    const yuqoriMaterialGap = yuqoriDistance * foiz;
+    const yuqori = (yuqoriDistance - yuqoriMaterialGap).toFixed(2);
+    
+    const ongDistance = joriyXona.value!.uzunlik - kemtik.x - kemtik.uzunlik;
+    const ongMaterialGap = ongDistance * foiz;
+    const ong = (ongDistance - ongMaterialGap).toFixed(2);
+    
+    const pastDistance = joriyXona.value!.kenglik - kemtik.y - kemtik.kenglik;
+    const pastMaterialGap = pastDistance * foiz;
+    const past = (pastDistance - pastMaterialGap).toFixed(2);
 
     ctx.strokeStyle = "#DC2626";
     ctx.lineWidth = 1.5;
     ctx.setLineDash([5, 3]);
 
-    // Chap masofa
+    // Chap masofa (material devoridan)
     if (parseFloat(chap) > 0.05) {
       ctx.beginPath();
-      ctx.moveTo(startX, kemtikY - 8);
+      ctx.moveTo(materialStartX, kemtikY - 8);
       ctx.lineTo(kemtikX, kemtikY - 8);
       ctx.stroke();
 
       ctx.fillStyle = "#DC2626";
       ctx.font = "12px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(`${chap} m`, startX + (kemtikX - startX) / 2, kemtikY - 12);
+      ctx.fillText(`${chap} m`, materialStartX + (kemtikX - materialStartX) / 2, kemtikY - 12);
     }
 
-    // O'ng masofa
+    // O'ng masofa (material devoridan)
     if (parseFloat(ong) > 0.05) {
       ctx.beginPath();
       ctx.moveTo(kemtikX + kemtikW, kemtikY - 8);
-      ctx.lineTo(startX + roomWidth, kemtikY - 8);
+      ctx.lineTo(materialStartX + materialWidth, kemtikY - 8);
       ctx.stroke();
 
       ctx.fillStyle = "#DC2626";
@@ -430,20 +498,20 @@ const chizmaChizish = () => {
       ctx.textAlign = "center";
       ctx.fillText(
         `${ong} m`,
-        kemtikX + kemtikW + (startX + roomWidth - kemtikX - kemtikW) / 2,
+        kemtikX + kemtikW + (materialStartX + materialWidth - kemtikX - kemtikW) / 2,
         kemtikY - 12,
       );
     }
 
-    // Yuqori masofa
+    // Yuqori masofa (material devoridan)
     if (parseFloat(yuqori) > 0.05) {
       ctx.beginPath();
-      ctx.moveTo(kemtikX - 8, startY);
+      ctx.moveTo(kemtikX - 8, materialStartY);
       ctx.lineTo(kemtikX - 8, kemtikY);
       ctx.stroke();
 
       ctx.save();
-      ctx.translate(kemtikX - 12, startY + (kemtikY - startY) / 2);
+      ctx.translate(kemtikX - 12, materialStartY + (kemtikY - materialStartY) / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.fillStyle = "#DC2626";
       ctx.font = "12px Arial";
@@ -452,17 +520,17 @@ const chizmaChizish = () => {
       ctx.restore();
     }
 
-    // Pastki masofa
+    // Pastki masofa (material devoridan)
     if (parseFloat(past) > 0.05) {
       ctx.beginPath();
       ctx.moveTo(kemtikX - 8, kemtikY + kemtikH);
-      ctx.lineTo(kemtikX - 8, startY + roomHeight);
+      ctx.lineTo(kemtikX - 8, materialStartY + materialHeight);
       ctx.stroke();
 
       ctx.save();
       ctx.translate(
         kemtikX - 12,
-        kemtikY + kemtikH + (startY + roomHeight - kemtikY - kemtikH) / 2,
+        kemtikY + kemtikH + (materialStartY + materialHeight - kemtikY - kemtikH) / 2,
       );
       ctx.rotate(-Math.PI / 2);
       ctx.fillStyle = "#DC2626";
@@ -718,6 +786,73 @@ onMounted(() => {
               </div>
             </div>
           </div>
+
+          <!-- Asosiy hisoblashlar -->
+          <div v-if="joriyXona" class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+              📊 Umumiy Hisoblashlar
+            </h2>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="bg-blue-50 rounded-lg p-2">
+                <p class="text-sm h-10 text-center text-gray-600 mb-1">Xona Maydoni</p>
+                <p class="text-[14px] font-bold text-blue-600">
+                  {{ xonaMaydon.toFixed(2) }} m²
+                </p>
+              </div>
+
+              <div class="bg-orange-50 rounded-lg p-2">
+                <p class="text-sm h-10 text-center text-gray-600 mb-1">Kemtiklar</p>
+                <p class="text-[14px] font-bold text-orange-600">
+                  {{ kemtiklarMaydon.toFixed(2) }} m²
+                </p>
+              </div>
+
+              <div class="bg-green-50 rounded-lg p-2">
+                <p class="text-sm h-10 text-center text-gray-600 mb-1">Toza Maydon</p>
+                <p class="text-[14px] font-bold text-green-600">
+                  {{ tozaMaydon.toFixed(2) }} m²
+                </p>
+              </div>
+
+              <div class="bg-red-50 rounded-lg p-2">
+                <p class="text-sm h-10 text-center text-gray-600 mb-1">
+                  Material (-{{ foizKamayish }}%)
+                </p>
+                <p class="text-[14px] font-bold text-red-600">
+                  {{ materialMaydon.toFixed(2) }} m²
+                </p>
+              </div>
+            </div>
+
+            <div
+              v-if="joriyXona.kemtiklar.length > 0 || peregorodkaMaydon > 0"
+              class="grid grid-cols-2 gap-4 mt-4"
+            >
+              <div
+                v-if="joriyXona.kemtiklar.length > 0"
+                class="bg-yellow-50 rounded-lg p-4"
+              >
+                <p class="text-sm text-gray-600 mb-1">Kemtiklar Material</p>
+                <p class="text-xl font-bold text-yellow-600">
+                  {{ kemtiklarMaterialMaydon.toFixed(2) }} m²
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                  Kemtiklar ichidagi material
+                </p>
+              </div>
+
+              <div
+                v-if="peregorodkaMaydon > 0"
+                class="bg-amber-50 rounded-lg p-4"
+              >
+                <p class="text-sm text-gray-600 mb-1">Peregorodka Material</p>
+                <p class="text-xl font-bold text-amber-600">
+                  {{ peregorodkaMaydon.toFixed(2) }} m²
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- O'rta panel - Chizma va hisoblashlar -->
@@ -734,7 +869,7 @@ onMounted(() => {
               </span>
             </h2>
 
-            <div class="grid md:grid-cols-3 gap-4">
+            <div class="grid  gap-4">
               <!-- Chizma (chap tomon) -->
               <div
                 class="md:col-span-2 border-2 border-gray-200 rounded-lg bg-gray-50 overflow-hidden"
@@ -748,7 +883,7 @@ onMounted(() => {
               </div>
 
               <!-- Material o'lchamlari ro'yxati (o'ng tomon) -->
-              <div v-if="joriyXona" class="space-y-3">
+              <div v-if="joriyXona" class="space-x-3 flex">
                 <div
                   class="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-4 border-2 border-red-200"
                 >
@@ -880,72 +1015,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Asosiy hisoblashlar -->
-          <div v-if="joriyXona" class="bg-white rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">
-              📊 Umumiy Hisoblashlar
-            </h2>
-
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div class="bg-blue-50 rounded-lg p-4">
-                <p class="text-sm text-gray-600 mb-1">Xona Maydoni</p>
-                <p class="text-2xl font-bold text-blue-600">
-                  {{ xonaMaydon.toFixed(2) }} m²
-                </p>
-              </div>
-
-              <div class="bg-orange-50 rounded-lg p-4">
-                <p class="text-sm text-gray-600 mb-1">Kemtiklar</p>
-                <p class="text-2xl font-bold text-orange-600">
-                  {{ kemtiklarMaydon.toFixed(2) }} m²
-                </p>
-              </div>
-
-              <div class="bg-green-50 rounded-lg p-4">
-                <p class="text-sm text-gray-600 mb-1">Toza Maydon</p>
-                <p class="text-2xl font-bold text-green-600">
-                  {{ tozaMaydon.toFixed(2) }} m²
-                </p>
-              </div>
-
-              <div class="bg-red-50 rounded-lg p-4">
-                <p class="text-sm text-gray-600 mb-1">
-                  Material (-{{ foizKamayish }}%)
-                </p>
-                <p class="text-2xl font-bold text-red-600">
-                  {{ materialMaydon.toFixed(2) }} m²
-                </p>
-              </div>
-            </div>
-
-            <div
-              v-if="joriyXona.kemtiklar.length > 0 || peregorodkaMaydon > 0"
-              class="grid grid-cols-2 gap-4 mt-4"
-            >
-              <div
-                v-if="joriyXona.kemtiklar.length > 0"
-                class="bg-yellow-50 rounded-lg p-4"
-              >
-                <p class="text-sm text-gray-600 mb-1">Kemtiklar Material</p>
-                <p class="text-xl font-bold text-yellow-600">
-                  {{ kemtiklarMaterialMaydon.toFixed(2) }} m²
-                </p>
-                <p class="text-xs text-gray-500 mt-1">
-                  Kemtiklar ichidagi material
-                </p>
-              </div>
-
-              <div
-                v-if="peregorodkaMaydon > 0"
-                class="bg-amber-50 rounded-lg p-4"
-              >
-                <p class="text-sm text-gray-600 mb-1">Peregorodka Material</p>
-                <p class="text-xl font-bold text-amber-600">
-                  {{ peregorodkaMaydon.toFixed(2) }} m²
-                </p>
-              </div>
-            </div>
-          </div>
+          
 
           <!-- Kemtik va Peregorodka qo'shish -->
           <div v-if="joriyXona" class="grid md:grid-cols-2 gap-6">
