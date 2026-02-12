@@ -186,7 +186,7 @@ const kemtiklarMaydon = computed(() => {
 
 const kemtiklarMaterialMaydon = computed(() => {
   if (!joriyXona.value) return 0;
-  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.1 : 0.07;
+  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.7 : 0.06;
   return joriyXona.value.kemtiklar.reduce((sum, k) => {
     return sum + k.uzunlik * k.kenglik * (1 - foiz);
   }, 0);
@@ -194,7 +194,7 @@ const kemtiklarMaterialMaydon = computed(() => {
 
 const peregorodkaMaydon = computed(() => {
   if (!joriyXona.value) return 0;
-  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.1 : 0.07;
+  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.07 : 0.06;
   return joriyXona.value.peregorodkalar.reduce((sum, p) => {
     const birinchi = p.birinchiTomon * joriyXona.value!.kenglik * (1 - foiz);
     const ikkinchi = p.ikkinchiTomon * joriyXona.value!.kenglik * (1 - foiz);
@@ -209,7 +209,7 @@ const tozaMaydon = computed(() => {
 // TO'G'RILANGAN: Material maydoni faqat xona o'lchamidan kamayadi
 const materialMaydon = computed(() => {
   if (!joriyXona.value) return 0;
-  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.1 : 0.07;
+  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.07 : 0.06;
 
   // Material faqat xona o'lchamidan kamayadi, kemtiklar hisobga olinmaydi
   const materialUzunlik = joriyXona.value.uzunlik * (1 - foiz);
@@ -222,7 +222,7 @@ const materialMaydon = computed(() => {
 // TO'G'RILANGAN: Kemtikka qadar masofalar MATERIAL devorlaridan hisoblanadi
 const kemtikMasofalar = computed(() => {
   if (!joriyXona.value) return [];
-  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.1 : 0.07;
+  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.07 : 0.06;
 
   return joriyXona.value.kemtiklar.map((kemtik) => {
     // Material devorlaridan kemtikkacha masofalar
@@ -256,7 +256,7 @@ const kemtikMasofalar = computed(() => {
 });
 
 const foizKamayish = computed(() => {
-  return joriyXona.value?.mavsumTuri === "issiq" ? 10 : 7;
+  return joriyXona.value?.mavsumTuri === "issiq" ? 7 : 6;
 });
 
 // Umumiy hisoblashlar
@@ -273,7 +273,7 @@ const umumiyXonaMaydon = computed(() => {
 
 const umumiyMaterialMaydon = computed(() => {
   return xonalar.value.reduce((sum, x) => {
-    const foiz = x.mavsumTuri === "issiq" ? 0.1 : 0.07;
+    const foiz = x.mavsumTuri === "issiq" ? 0.07 : 0.06;
     const materialUzunlik = x.uzunlik * (1 - foiz);
     const materialKenglik = x.kenglik * (1 - foiz);
     const asosiyMaterial = materialUzunlik * materialKenglik;
@@ -322,7 +322,7 @@ const chizmaChizish = () => {
   ctx.strokeRect(startX, startY, roomWidth, roomHeight);
 
   // Material maydoni (qizil rang) - kemtiklar bilan kompleks shakl
-  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.1 : 0.07;
+  const foiz = joriyXona.value.mavsumTuri === "issiq" ? 0.07 : 0.06;
   
   // Asosiy material o'lchamlari
   const materialWidth = roomWidth * (1 - foiz);
@@ -649,6 +649,7 @@ const localStorageDanYuklash = () => {
 
 // Component yuklanganda
 import { onMounted } from "vue";
+import { RouterLink } from "vue-router";
 onMounted(() => {
   localStorageDanYuklash();
   if (canvas.value) {
@@ -661,13 +662,16 @@ onMounted(() => {
   <div class="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 p-4">
     <div class="max-w-7xl mx-auto">
       <!-- Sarlavha -->
-      <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <h1 class="text-3xl font-bold text-indigo-900 mb-2">
+      <div class="flex items-center justify-between bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div>
+          <h1 class="text-3xl font-bold text-indigo-900 mb-2">
           🏠 Натяжной Потолок Калькулятори
         </h1>
         <p class="text-gray-600">
           Xonalar, kemtiklar va peregorodkalar bilan professional hisoblash
         </p>
+        </div>
+        <RouterLink to="/visualization" class="bg-blue-500 p-2 text-white rounded-md">Patalok ko'rinishi</RouterLink>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -726,8 +730,8 @@ onMounted(() => {
                   v-model="mavsumTuri"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
-                  <option value="issiq">☀️ Issiq (−10%)</option>
-                  <option value="sovuq">❄️ Sovuq (−7%)</option>
+                  <option value="issiq">☀️ Issiq (−7%)</option>
+                  <option value="sovuq">❄️ Sovuq (−6%)</option>
                 </select>
               </div>
 
@@ -739,6 +743,202 @@ onMounted(() => {
               </button>
             </div>
           </div>
+
+          <div v-if="joriyXona" class="bg-white rounded-xl shadow-lg p-6">
+           <h3 class="text-lg font-bold text-gray-800 mb-4">
+             🟡 Kemtik Qo'shish
+           </h3>
+
+           <div class="space-y-3">
+             <input
+               v-model="yangiKemtikNom"
+               type="text"
+               placeholder="Kemtik nomi"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
+             />
+
+             <div class="grid grid-cols-2 gap-2">
+               <input
+                 v-model="yangiKemtikUzunlik"
+                 type="number"
+                 step="0.01"
+                 placeholder="Kemtik kengligi (m)"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
+               />
+               <input
+                 v-model="yangiKemtikKenglik"
+                 type="number"
+                 step="0.01"
+                 placeholder="Kemtik uzunligi (m)"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
+               />
+             </div>
+
+             <div class="bg-yellow-50 rounded-lg p-3 space-y-2">
+               <p class="text-xs font-semibold text-gray-700">
+                 📍 Pozitsiya (xona devorlaridan masofa)
+               </p>
+
+               <div class="grid grid-cols-2 gap-2">
+                 <div>
+                   <label class="text-xs text-gray-600"
+                     >Chapdan (m)</label
+                   >
+                   <input
+                     v-model="yangiKemtikX"
+                     type="number"
+                     min="0"
+                     :max="joriyXona ? joriyXona.uzunlik : 100"
+                     step="0.01"
+                     placeholder="0.00"
+                     class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-yellow-500"
+                   />
+                 </div>
+                 <div>
+                   <label class="text-xs text-gray-600"
+                     >Yuqoridan (m)</label
+                   >
+                   <input
+                     v-model="yangiKemtikY"
+                     type="number"
+                     min="0"
+                     :max="joriyXona ? joriyXona.kenglik : 100"
+                     step="0.01"
+                     placeholder="0.00"
+                     class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-yellow-500"
+                   />
+                 </div>
+               </div>
+
+               <div v-if="joriyXona" class="bg-white rounded p-2 mt-2">
+                 <p class="text-xs font-semibold text-gray-700 mb-1">
+                   💡 Misol:
+                 </p>
+                 <p class="text-xs text-gray-600">
+                   Xona: {{ joriyXona.uzunlik }}×{{ joriyXona.kenglik }}m
+                 </p>
+                 <ul class="text-xs text-gray-600 mt-1 space-y-0.5">
+                   <li>• Chap-yuqori burchak: X=0, Y=0</li>
+                   <li>
+                     • O'ng-yuqori burchak: X={{
+                       (
+                         joriyXona.uzunlik - (yangiKemtikUzunlik || 0.5)
+                       ).toFixed(2)
+                     }}, Y=0
+                   </li>
+                   <li>
+                     • O'ng-past burchak: X={{
+                       (
+                         joriyXona.uzunlik - (yangiKemtikUzunlik || 0.5)
+                       ).toFixed(2)
+                     }}, Y={{
+                       (
+                         joriyXona.kenglik - (yangiKemtikKenglik || 0.5)
+                       ).toFixed(2)
+                     }}
+                   </li>
+                 </ul>
+               </div>
+             </div>
+
+             <button
+               @click="kemtikQoshish"
+               class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-lg transition duration-200"
+             >
+               Kemtik Qo'shish
+             </button>
+           </div>
+
+           <div v-if="joriyXona.kemtiklar.length > 0" class="mt-4 space-y-2">
+             <h4 class="font-semibold text-gray-700 text-sm">
+               Qo'shilgan kemtiklar:
+             </h4>
+             <div
+               v-for="kemtik in joriyXona.kemtiklar"
+               :key="kemtik.id"
+               class="flex justify-between items-center bg-yellow-50 p-2 rounded text-sm"
+             >
+               <div>
+                 <div class="font-medium">{{ kemtik.nom }}</div>
+                 <div class="text-xs text-gray-600">
+                   {{ kemtik.uzunlik }}×{{ kemtik.kenglik }}m | X:{{
+                     kemtik.x
+                   }}m Y:{{ kemtik.y }}m
+                 </div>
+               </div>
+               <button
+                 @click="kemtikOchirish(kemtik.id)"
+                 class="text-red-600 hover:text-red-800 font-bold text-xl"
+               >
+                 ×
+               </button>
+             </div>
+           </div>
+         </div>
+          <!-- <div  class="grid md:grid-cols-2 gap-6"> -->
+            <!-- Kemtik -->
+
+            <!-- Peregorodka -->
+            <!-- <div class="bg-white rounded-xl shadow-lg p-6">
+              <h3 class="text-lg font-bold text-gray-800 mb-4">
+                🟡 Peregorodka Qo'shish
+              </h3>
+
+              <div class="space-y-3">
+                <input
+                  v-model="yangiPeregorodkaNom"
+                  type="text"
+                  placeholder="Peregorodka nomi"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                />
+                <input
+                  v-model="yangiPeregorodkaBirinchi"
+                  type="number"
+                  step="0.01"
+                  placeholder="1-tomon (m)"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                />
+                <input
+                  v-model="yangiPeregorodkaIkkinchi"
+                  type="number"
+                  step="0.01"
+                  placeholder="2-tomon (m)"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                />
+                <button
+                  @click="peregorodkaQoshish"
+                  class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg transition duration-200"
+                >
+                  Peregorodka Qo'shish
+                </button>
+              </div>
+
+              <div
+                v-if="joriyXona.peregorodkalar.length > 0"
+                class="mt-4 space-y-2"
+              >
+                <h4 class="font-semibold text-gray-700 text-sm">
+                  Qo'shilgan peregorodkalar:
+                </h4>
+                <div
+                  v-for="per in joriyXona.peregorodkalar"
+                  :key="per.id"
+                  class="flex justify-between items-center bg-amber-50 p-2 rounded text-sm"
+                >
+                  <span
+                    >{{ per.nom }} ({{ per.birinchiTomon }}m |
+                    {{ per.ikkinchiTomon }}m)</span
+                  >
+                  <button
+                    @click="peregorodkaOchirish(per.id)"
+                    class="text-amber-600 hover:text-amber-800 font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            </div> -->
+          <!-- </div> -->
 
           <!-- Mavjud xonalar ro'yxati -->
           <div class="bg-white rounded-xl shadow-lg p-6">
@@ -1015,245 +1215,7 @@ onMounted(() => {
             </div>
           </div>
 
-          
-
-          <!-- Kemtik va Peregorodka qo'shish -->
-          <div v-if="joriyXona" class="grid md:grid-cols-2 gap-6">
-            <!-- Kemtik -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
-              <h3 class="text-lg font-bold text-gray-800 mb-4">
-                🟡 Kemtik Qo'shish
-              </h3>
-
-              <div class="space-y-3">
-                <input
-                  v-model="yangiKemtikNom"
-                  type="text"
-                  placeholder="Kemtik nomi"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
-                />
-
-                <div class="grid grid-cols-2 gap-2">
-                  <input
-                    v-model="yangiKemtikUzunlik"
-                    type="number"
-                    step="0.01"
-                    placeholder="Kemtik kengligi (m)"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
-                  />
-                  <input
-                    v-model="yangiKemtikKenglik"
-                    type="number"
-                    step="0.01"
-                    placeholder="Kemtik uzunligi (m)"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
-                  />
-                </div>
-
-                <div class="bg-yellow-50 rounded-lg p-3 space-y-2">
-                  <p class="text-xs font-semibold text-gray-700">
-                    📍 Pozitsiya (xona devorlaridan masofa)
-                  </p>
-
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="text-xs text-gray-600"
-                        >Chapdan (m)</label
-                      >
-                      <input
-                        v-model="yangiKemtikX"
-                        type="number"
-                        min="0"
-                        :max="joriyXona ? joriyXona.uzunlik : 100"
-                        step="0.01"
-                        placeholder="0.00"
-                        class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-yellow-500"
-                      />
-                    </div>
-                    <div>
-                      <label class="text-xs text-gray-600"
-                        >Yuqoridan (m)</label
-                      >
-                      <input
-                        v-model="yangiKemtikY"
-                        type="number"
-                        min="0"
-                        :max="joriyXona ? joriyXona.kenglik : 100"
-                        step="0.01"
-                        placeholder="0.00"
-                        class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-yellow-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div v-if="joriyXona" class="bg-white rounded p-2 mt-2">
-                    <p class="text-xs font-semibold text-gray-700 mb-1">
-                      💡 Misol:
-                    </p>
-                    <p class="text-xs text-gray-600">
-                      Xona: {{ joriyXona.uzunlik }}×{{ joriyXona.kenglik }}m
-                    </p>
-                    <ul class="text-xs text-gray-600 mt-1 space-y-0.5">
-                      <li>• Chap-yuqori burchak: X=0, Y=0</li>
-                      <li>
-                        • O'ng-yuqori burchak: X={{
-                          (
-                            joriyXona.uzunlik - (yangiKemtikUzunlik || 0.5)
-                          ).toFixed(2)
-                        }}, Y=0
-                      </li>
-                      <li>
-                        • O'ng-past burchak: X={{
-                          (
-                            joriyXona.uzunlik - (yangiKemtikUzunlik || 0.5)
-                          ).toFixed(2)
-                        }}, Y={{
-                          (
-                            joriyXona.kenglik - (yangiKemtikKenglik || 0.5)
-                          ).toFixed(2)
-                        }}
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                <button
-                  @click="kemtikQoshish"
-                  class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-lg transition duration-200"
-                >
-                  Kemtik Qo'shish
-                </button>
-              </div>
-
-              <div v-if="joriyXona.kemtiklar.length > 0" class="mt-4 space-y-2">
-                <h4 class="font-semibold text-gray-700 text-sm">
-                  Qo'shilgan kemtiklar:
-                </h4>
-                <div
-                  v-for="kemtik in joriyXona.kemtiklar"
-                  :key="kemtik.id"
-                  class="flex justify-between items-center bg-yellow-50 p-2 rounded text-sm"
-                >
-                  <div>
-                    <div class="font-medium">{{ kemtik.nom }}</div>
-                    <div class="text-xs text-gray-600">
-                      {{ kemtik.uzunlik }}×{{ kemtik.kenglik }}m | X:{{
-                        kemtik.x
-                      }}m Y:{{ kemtik.y }}m
-                    </div>
-                  </div>
-                  <button
-                    @click="kemtikOchirish(kemtik.id)"
-                    class="text-red-600 hover:text-red-800 font-bold text-xl"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Peregorodka -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
-              <h3 class="text-lg font-bold text-gray-800 mb-4">
-                🟡 Peregorodka Qo'shish
-              </h3>
-
-              <div class="space-y-3">
-                <input
-                  v-model="yangiPeregorodkaNom"
-                  type="text"
-                  placeholder="Peregorodka nomi"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
-                />
-                <input
-                  v-model="yangiPeregorodkaBirinchi"
-                  type="number"
-                  step="0.01"
-                  placeholder="1-tomon (m)"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
-                />
-                <input
-                  v-model="yangiPeregorodkaIkkinchi"
-                  type="number"
-                  step="0.01"
-                  placeholder="2-tomon (m)"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
-                />
-                <button
-                  @click="peregorodkaQoshish"
-                  class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg transition duration-200"
-                >
-                  Peregorodka Qo'shish
-                </button>
-              </div>
-
-              <div
-                v-if="joriyXona.peregorodkalar.length > 0"
-                class="mt-4 space-y-2"
-              >
-                <h4 class="font-semibold text-gray-700 text-sm">
-                  Qo'shilgan peregorodkalar:
-                </h4>
-                <div
-                  v-for="per in joriyXona.peregorodkalar"
-                  :key="per.id"
-                  class="flex justify-between items-center bg-amber-50 p-2 rounded text-sm"
-                >
-                  <span
-                    >{{ per.nom }} ({{ per.birinchiTomon }}m |
-                    {{ per.ikkinchiTomon }}m)</span
-                  >
-                  <button
-                    @click="peregorodkaOchirish(per.id)"
-                    class="text-amber-600 hover:text-amber-800 font-bold"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Umumiy hisoblashlar -->
-      <div
-        v-if="xonalar.length > 0"
-        class="bg-white rounded-xl shadow-lg p-6 mt-6"
-      >
-        <h2 class="text-xl font-bold text-gray-800 mb-4">
-          📈 Umumiy Hisoblashlar
-        </h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div
-            class="bg-linear-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white"
-          >
-            <p class="text-sm opacity-90 mb-2">Jami Xonalar</p>
-            <p class="text-4xl font-bold">{{ xonalar.length }}</p>
-          </div>
-
-          <div
-            class="bg-linear-to-br from-green-500 to-green-600 rounded-xl p-6 text-white"
-          >
-            <p class="text-sm opacity-90 mb-2">Umumiy Xona Maydoni</p>
-            <p class="text-4xl font-bold">
-              {{ umumiyXonaMaydon.toFixed(2) }} m²
-            </p>
-          </div>
-
-          <div
-            class="bg-linear-to-br from-red-500 to-red-600 rounded-xl p-6 text-white"
-          >
-            <p class="text-sm opacity-90 mb-2">Umumiy Material</p>
-            <p class="text-4xl font-bold">
-              {{ umumiyMaterialMaydon.toFixed(2) }} m²
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Xonadon saqlash -->
+           <!-- Xonadon saqlash -->
       <div
         v-if="xonalar.length > 0"
         class="bg-white rounded-xl shadow-lg p-6 mt-6"
@@ -1304,6 +1266,13 @@ onMounted(() => {
           💾 Xonadonni Saqlash
         </button>
       </div>
+
+          <!-- Kemtik va Peregorodka qo'shish -->
+          
+        </div>
+      </div>
+
+     
 
       <!-- Saqlangan xonadonlar -->
       <div
