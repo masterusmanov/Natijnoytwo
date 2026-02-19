@@ -672,6 +672,7 @@ onMounted(() => {
         </p>
         </div>
         <RouterLink to="/visualization" class="bg-blue-500 p-2 text-white rounded-md">Patalok ko'rinishi</RouterLink>
+        <RouterLink to="/handmeasure" class="bg-blue-500 p-2 text-white rounded-md">Qo'l bilan o'lchash</RouterLink>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

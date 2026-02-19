@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from "../views/HomeView.vue";
 import DefaultLayout from '../layout/default/index.vue';
-import Visualisiation from '../views/Visualisiation/index.vue'
+import Visualisiation from '../views/Visualisiation/index.vue';
+import HandMeasure from '../views/Handmeasure/index.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,6 +21,11 @@ const router = createRouter({
           path: "/visualization",
           name: " visualization",
           component: Visualisiation
+        },
+        {
+          path: "/handmeasure",
+          name: " handmeasure",
+          component: HandMeasure
         },
       ],
     },
